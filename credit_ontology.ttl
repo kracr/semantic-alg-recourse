@@ -1,0 +1,238 @@
+@prefix owl:    <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
+@prefix schema: <http://schema.org/> .
+@prefix foaf:   <http://xmlns.com/foaf/0.1/> .
+@prefix ex:     <http://example.org/credit/> .
+
+ex:
+    a owl:Ontology ;
+    rdfs:label "German Credit Counterfactual Ontology" ;
+    rdfs:comment "Domain vocabulary for representing German Credit loan applications, applicants, and DiCE-generated counterfactual applications, extending foaf and schema.org terms." ;
+    owl:imports schema: , foaf: .
+
+# ================================================================
+#  CLASSES
+# ================================================================
+ex:CreditApplication
+    a owl:Class ;
+    rdfs:subClassOf schema:LoanOrCredit ;
+    rdfs:label "Credit Application" ;
+    rdfs:comment "A single German Credit loan application instance, either an original applicant record or a counterfactual variant of one." .
+
+ex:CounterfactualApplication
+    a owl:Class ;
+    rdfs:subClassOf ex:CreditApplication ;
+    rdfs:label "Counterfactual Application" ;
+    rdfs:comment "A CreditApplication produced by a counterfactual-explanation generator (DiCE) as a candidate alternative to an original, rejected application. Carries original_* companion properties for comparison against the values it replaces, and is the target of feasibility/immutability/sparsity SHACL rules." .
+
+# ================================================================
+#  OBJECT PROPERTIES
+# ================================================================
+# schema:borrower (foaf:Person <- ex:CreditApplication) is reused
+# as-is from schema.org; not redefined here.
+
+# ================================================================
+#  DATATYPE PROPERTIES -- ex:CreditApplication
+# ================================================================
+ex:checkingStatus
+    a owl:DatatypeProperty ;
+    rdfs:domain ex:CreditApplication ;
+    rdfs:range xsd:string ;
+    rdfs:label "checking account status" ;
+    rdfs:comment "Categorical status of the applicant's checking account (e.g. 'no checking', '<0', '0<=X<200', '>=200'). Ordinal-encoded via ex:originalCheckingOrdinal / ex:newCheckingOrdinal for feasibility checks." .
+
+ex:creditHistory
+    a owl:DatatypeProperty ;
+    rdfs:domain ex:CreditApplication ;
+    rdfs:range xsd:string ;
+    rdfs:label "credit history" .
+
+ex:loanPurpose
+    a owl:DatatypeProperty ;
+    rdfs:domain ex:CreditApplication ;
+    rdfs:range xsd:string ;
+    rdfs:label "loan purpose" .
+
+ex:savingsStatus
+    a owl:DatatypeProperty ;
+    rdfs:domain ex:CreditApplication ;
+    rdfs:range xsd:string ;
+    rdfs:label "savings account status" ;
+    rdfs:comment "Categorical savings status. Ordinal-encoded via ex:originalSavingsOrdinal / ex:newSavingsOrdinal for feasibility checks." .
+
+ex:otherDebtors
+    a owl:DatatypeProperty ;
+    rdfs:domain ex:CreditApplication ;
+    rdfs:range xsd:string ;
+    rdfs:label "other debtors or guarantors" .
+
+ex:otherInstallmentPlans
+    a owl:DatatypeProperty ;
+    rdfs:domain ex:CreditApplication ;
+    rdfs:range xsd:string ;
+    rdfs:label "other installment plans" .
+
+ex:housingStatus
+    a owl:DatatypeProperty ;
+    rdfs:domain ex:CreditApplication ;
+    rdfs:range xsd:string ;
+    rdfs:label "housing status" .
+
+ex:originalAmount
+    a owl:DatatypeProperty ;
+    rdfs:domain ex:CounterfactualApplication ;
+    rdfs:range xsd:integer ;
+    rdfs:label "original credit amount" ;
+    rdfs:comment "The schema:value of the original application this counterfactual was derived from. Compared against schema:value by ex:LoanReductionRule." .
+
+ex:originalDuration
+    a owl:DatatypeProperty ;
+    rdfs:domain ex:CounterfactualApplication ;
+    rdfs:range xsd:integer ;
+    rdfs:label "original loan duration" ;
+    rdfs:comment "The schema:numberOfLoanPayments of the original application. Compared by ex:DurationReductionRule." .
+
+ex:originalChecking
+    a owl:DatatypeProperty ;
+    rdfs:domain ex:CounterfactualApplication ;
+    rdfs:range xsd:string ;
+    rdfs:label "original checking status (categorical)" .
+
+ex:originalCheckingOrdinal
+    a owl:DatatypeProperty ;
+    rdfs:domain ex:CounterfactualApplication ;
+    rdfs:range xsd:integer ;
+    rdfs:label "original checking status, ordinal-encoded" ;
+    rdfs:comment "Ordinal scale: 0 = no checking, 1 = <0, 2 = 0<=X<200, 3 = >=200. Used by ex:CheckingDirectionalRule and ex:CheckingJumpRule." .
+
+ex:newCheckingOrdinal
+    a owl:DatatypeProperty ;
+    rdfs:domain ex:CounterfactualApplication ;
+    rdfs:range xsd:integer ;
+    rdfs:label "counterfactual checking status, ordinal-encoded" ;
+    rdfs:comment "Same 0-3 ordinal scale as ex:originalCheckingOrdinal, computed for the counterfactual's ex:checkingStatus value." .
+
+ex:originalSavings
+    a owl:DatatypeProperty ;
+    rdfs:domain ex:CounterfactualApplication ;
+    rdfs:range xsd:string ;
+    rdfs:label "original savings status (categorical)" .
+
+ex:originalSavingsOrdinal
+    a owl:DatatypeProperty ;
+    rdfs:domain ex:CounterfactualApplication ;
+    rdfs:range xsd:integer ;
+    rdfs:label "original savings status, ordinal-encoded" ;
+    rdfs:comment "Ordinal scale: 0 = no known/unknown savings, 1 = <100, 2 = 100<=X<500, 3 = 500<=X<1000, 4 = >=1000. Used by ex:SavingsDirectionalRule, ex:SavingsJumpRule, ex:SavingsAgeCohesionRule." .
+
+ex:newSavingsOrdinal
+    a owl:DatatypeProperty ;
+    rdfs:domain ex:CounterfactualApplication ;
+    rdfs:range xsd:integer ;
+    rdfs:label "counterfactual savings status, ordinal-encoded" ;
+    rdfs:comment "Same 0-4 ordinal scale as ex:originalSavingsOrdinal, computed for the counterfactual's ex:savingsStatus value." .
+
+ex:numberOfChangedFeatures
+    a owl:DatatypeProperty ;
+    rdfs:domain ex:CounterfactualApplication ;
+    rdfs:range xsd:integer ;
+    rdfs:label "number of changed features" ;
+    rdfs:comment "Count of non-immutable features that differ between the original application and this counterfactual. Used by ex:SparsityRule (max 15)." .
+
+# ================================================================
+#  DATATYPE PROPERTIES -- foaf:Person
+# ================================================================
+ex:employmentSince
+    a owl:DatatypeProperty ;
+    rdfs:domain foaf:Person ;
+    rdfs:range xsd:string ;
+    rdfs:label "employment tenure category" ;
+    rdfs:comment "Categorical employment duration (e.g. 'unemployed', '<1', '1<=X<4', '4<=X<7', '>=7'). Ordinal-encoded via ex:originalEmploymentOrdinal / ex:newEmploymentOrdinal." .
+
+ex:personalStatus
+    a owl:DatatypeProperty ;
+    rdfs:domain foaf:Person ;
+    rdfs:range xsd:string ;
+    rdfs:label "personal status and sex" ;
+    rdfs:comment "Treated as immutable; see ex:PersonalStatusImmutabilityRule." .
+
+ex:jobLevel
+    a owl:DatatypeProperty ;
+    rdfs:domain foaf:Person ;
+    rdfs:range xsd:string ;
+    rdfs:label "job skill/employment level" .
+
+ex:hasTelephone
+    a owl:DatatypeProperty ;
+    rdfs:domain foaf:Person ;
+    rdfs:range xsd:boolean ;
+    rdfs:label "has registered telephone" .
+
+ex:isForeignWorker
+    a owl:DatatypeProperty ;
+    rdfs:domain foaf:Person ;
+    rdfs:range xsd:boolean ;
+    rdfs:label "is foreign worker" ;
+    rdfs:comment "Treated as immutable; see ex:ForeignWorkerImmutabilityRule." .
+
+ex:residenceSince
+    a owl:DatatypeProperty ;
+    rdfs:domain foaf:Person ;
+    rdfs:range xsd:integer ;
+    rdfs:label "years at present residence" .
+
+ex:propertyAsset
+    a owl:DatatypeProperty ;
+    rdfs:domain foaf:Person ;
+    rdfs:range xsd:string ;
+    rdfs:label "property/asset magnitude" .
+
+ex:originalAge
+    a owl:DatatypeProperty ;
+    rdfs:domain foaf:Person ;
+    rdfs:range xsd:integer ;
+    rdfs:label "original age" ;
+    rdfs:comment "Applicant age at the time of the original application. Compared against foaf:age by ex:EmploymentAgeCohesionRule and ex:SavingsAgeCohesionRule." .
+
+ex:originalNumDependents
+    a owl:DatatypeProperty ;
+    rdfs:domain foaf:Person ;
+    rdfs:range xsd:integer ;
+    rdfs:label "original number of dependents" ;
+    rdfs:comment "Treated as immutable within a 3-year window; see ex:NumDependentsImmutabilityRule." .
+
+ex:originalEmployment
+    a owl:DatatypeProperty ;
+    rdfs:domain foaf:Person ;
+    rdfs:range xsd:string ;
+    rdfs:label "original employment tenure category" .
+
+ex:originalEmploymentOrdinal
+    a owl:DatatypeProperty ;
+    rdfs:domain foaf:Person ;
+    rdfs:range xsd:integer ;
+    rdfs:label "original employment tenure, ordinal-encoded" ;
+    rdfs:comment "Ordinal scale: 1 = unemployed, 2 = <1yr, 3 = 1<=X<4, 4 = 4<=X<7, 5 = >=7yrs. Used by ex:EmploymentDirectionalRule, ex:EmploymentJumpRule, ex:EmploymentAgeCohesionRule." .
+
+ex:newEmploymentOrdinal
+    a owl:DatatypeProperty ;
+    rdfs:domain foaf:Person ;
+    rdfs:range xsd:integer ;
+    rdfs:label "counterfactual employment tenure, ordinal-encoded" ;
+    rdfs:comment "Same 1-5 ordinal scale as ex:originalEmploymentOrdinal, computed for the counterfactual's ex:employmentSince value." .
+
+ex:originalPersonalStatus
+    a owl:DatatypeProperty ;
+    rdfs:domain foaf:Person ;
+    rdfs:range xsd:string ;
+    rdfs:label "original personal status and sex" ;
+    rdfs:comment "Must equal ex:personalStatus under ex:PersonalStatusImmutabilityRule." .
+
+ex:originalForeignWorker
+    a owl:DatatypeProperty ;
+    rdfs:domain foaf:Person ;
+    rdfs:range xsd:boolean ;
+    rdfs:label "original foreign worker status" ;
+    rdfs:comment "Must equal ex:isForeignWorker under ex:ForeignWorkerImmutabilityRule." .

@@ -1,0 +1,354 @@
+@prefix sh:     <http://www.w3.org/ns/shacl#> .
+@prefix schema: <http://schema.org/> .
+@prefix foaf:   <http://xmlns.com/foaf/0.1/> .
+@prefix ex:     <http://example.org/compas/> .
+@prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
+
+# ================================================================
+#  BASIC DATA VALIDATION – HARD CONSTRAINTS
+# ================================================================
+ex:AgeShape
+    a sh:NodeShape ;
+    sh:targetClass schema:Person ;
+    sh:property [
+        sh:path schema:age ;
+        sh:minInclusive 18 ;
+        sh:maxInclusive 96 ;
+        sh:datatype xsd:integer ;
+        sh:message "Age must be 18-96."
+    ] .
+
+ex:PriorsCountShape
+    a sh:NodeShape ;
+    sh:targetClass schema:Person ;
+    sh:property [
+        sh:path ex:priorsCount ;
+        sh:minInclusive 0 ;
+        sh:maxInclusive 38 ;
+        sh:datatype xsd:integer ;
+        sh:message "priors_count must be 0-38."
+    ] .
+
+ex:JuvFelonyCountShape
+    a sh:NodeShape ;
+    sh:targetClass schema:Person ;
+    sh:property [
+        sh:path ex:juvFelonyCount ;
+        sh:minInclusive 0 ;
+        sh:maxInclusive 20 ;
+        sh:datatype xsd:integer ;
+        sh:message "juv_fel_count must be 0-20."
+    ] .
+
+ex:JuvMisdemeanorCountShape
+    a sh:NodeShape ;
+    sh:targetClass schema:Person ;
+    sh:property [
+        sh:path ex:juvMisdemeanorCount ;
+        sh:minInclusive 0 ;
+        sh:maxInclusive 13 ;
+        sh:datatype xsd:integer ;
+        sh:message "juv_misd_count must be 0-13."
+    ] .
+
+ex:JuvOtherCountShape
+    a sh:NodeShape ;
+    sh:targetClass schema:Person ;
+    sh:property [
+        sh:path ex:juvOtherCount ;
+        sh:minInclusive 0 ;
+        sh:maxInclusive 10 ;
+        sh:datatype xsd:integer ;
+        sh:message "juv_other_count must be 0-10."
+    ] .
+
+ex:DaysScreeningArrestShape
+    a sh:NodeShape ;
+    sh:targetClass schema:Person ;
+    sh:property [
+        sh:path ex:daysB_screeningArrest ;
+        sh:minInclusive -30 ;
+        sh:maxInclusive 30 ;
+        sh:datatype xsd:integer ;
+        sh:message "days_b_screening_arrest must be between -30 and 30."
+    ] .
+
+ex:LengthOfStayShape
+    a sh:NodeShape ;
+    sh:targetClass schema:Person ;
+    sh:property [
+        sh:path ex:lengthOfStay ;
+        sh:minInclusive -10 ;
+        sh:maxInclusive 1095 ;
+        sh:message "length_of_stay must be -10 to 1095 days (realistic bounds)."
+        # datatype removed to avoid parsing issues
+    ] .
+
+# ================================================================
+#  ENUMERATIONS USING SPARQL (robust)
+# ================================================================
+
+ex:GenderShape
+    a sh:NodeShape ;
+    sh:targetClass schema:Person ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "gender must be 'Male' or 'Female'." ;
+        sh:select '''
+PREFIX schema: <http://schema.org/>
+SELECT $this WHERE {
+    $this schema:gender ?g .
+    FILTER(?g != "Male" && ?g != "Female")
+}
+''' ;
+    ] .
+
+ex:RaceShape
+    a sh:NodeShape ;
+    sh:targetClass schema:Person ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "race must be one of the observed categories." ;
+        sh:select '''
+PREFIX ex: <http://example.org/compas/>
+SELECT $this WHERE {
+    $this ex:race ?r .
+    FILTER(?r != "African-American" && ?r != "Caucasian" && ?r != "Hispanic" && ?r != "Other" && ?r != "Asian" && ?r != "Native American")
+}
+''' ;
+    ] .
+
+# ================================================================
+#  IMMUTABILITY RULES – only for counterfactuals
+# ================================================================
+
+ex:GenderImmutabilityRule
+    a sh:NodeShape ;
+    sh:targetClass schema:Person ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Gender is immutable." ;
+        sh:select '''
+PREFIX schema: <http://schema.org/>
+PREFIX ex: <http://example.org/compas/>
+SELECT $this WHERE {
+    $this ex:isCounterfactual true .
+    $this ex:originalGender ?old .
+    $this schema:gender ?new .
+    FILTER(?old != ?new)
+}
+''' ;
+    ] .
+
+ex:RaceImmutabilityRule
+    a sh:NodeShape ;
+    sh:targetClass schema:Person ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Race is immutable." ;
+        sh:select '''
+PREFIX ex: <http://example.org/compas/>
+SELECT $this WHERE {
+    $this ex:isCounterfactual true .
+    $this ex:originalRace ?old .
+    $this ex:race ?new .
+    FILTER(?old != ?new)
+}
+''' ;
+    ] .
+
+# ================================================================
+#  DIRECTIONAL & JUMP RULES – only for counterfactuals
+# ================================================================
+
+ex:AgeDirectionalRule
+    a sh:NodeShape ;
+    sh:targetClass schema:Person ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Age cannot decrease (you cannot become younger)." ;
+        sh:select '''
+PREFIX schema: <http://schema.org/>
+PREFIX ex: <http://example.org/compas/>
+SELECT $this WHERE {
+    $this ex:isCounterfactual true .
+    $this ex:originalAge ?old .
+    $this schema:age ?new .
+    FILTER(?new < ?old)
+}
+''' ;
+    ] .
+
+ex:AgeJumpRule
+    a sh:NodeShape ;
+    sh:targetClass schema:Person ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Age change > 15 years is not a minimal counterfactual." ;
+        sh:select '''
+PREFIX schema: <http://schema.org/>
+PREFIX ex: <http://example.org/compas/>
+SELECT $this WHERE {
+    $this ex:isCounterfactual true .
+    $this ex:originalAge ?old .
+    $this schema:age ?new .
+    FILTER(ABS(?new - ?old) > 15)
+}
+''' ;
+    ] .
+
+ex:PriorsDirectionalRule
+    a sh:NodeShape ;
+    sh:targetClass schema:Person ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "priors_count cannot increase (committing more offenses is never a valid counterfactual direction)." ;
+        sh:select '''
+PREFIX ex: <http://example.org/compas/>
+SELECT $this WHERE {
+    $this ex:isCounterfactual true .
+    $this ex:originalPriorsCount ?old .
+    $this ex:priorsCount ?new .
+    FILTER(?new > ?old)
+}
+''' ;
+    ] .
+
+ex:PriorsJumpRule
+    a sh:NodeShape ;
+    sh:targetClass schema:Person ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Decrease in priors_count exceeding 5 in a single counterfactual step is unrealistic." ;
+        sh:select '''
+PREFIX ex: <http://example.org/compas/>
+SELECT $this WHERE {
+    $this ex:isCounterfactual true .
+    $this ex:originalPriorsCount ?old .
+    $this ex:priorsCount ?new .
+    FILTER((?old - ?new) > 5)
+}
+''' ;
+    ] .
+
+ex:JuvFelonyDirectionalRule
+    a sh:NodeShape ;
+    sh:targetClass schema:Person ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "juv_fel_count cannot increase." ;
+        sh:select '''
+PREFIX ex: <http://example.org/compas/>
+SELECT $this WHERE {
+    $this ex:isCounterfactual true .
+    $this ex:originalJuvFelonyCount ?old .
+    $this ex:juvFelonyCount ?new .
+    FILTER(?new > ?old)
+}
+''' ;
+    ] .
+
+ex:JuvFelonyJumpRule
+    a sh:NodeShape ;
+    sh:targetClass schema:Person ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Decrease in juv_fel_count exceeding 3 in a single counterfactual step is unrealistic." ;
+        sh:select '''
+PREFIX ex: <http://example.org/compas/>
+SELECT $this WHERE {
+    $this ex:isCounterfactual true .
+    $this ex:originalJuvFelonyCount ?old .
+    $this ex:juvFelonyCount ?new .
+    FILTER((?old - ?new) > 3)
+}
+''' ;
+    ] .
+
+ex:JuvMisdemeanorDirectionalRule
+    a sh:NodeShape ;
+    sh:targetClass schema:Person ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "juv_misd_count cannot increase." ;
+        sh:select '''
+PREFIX ex: <http://example.org/compas/>
+SELECT $this WHERE {
+    $this ex:isCounterfactual true .
+    $this ex:originalJuvMisdemeanorCount ?old .
+    $this ex:juvMisdemeanorCount ?new .
+    FILTER(?new > ?old)
+}
+''' ;
+    ] .
+
+ex:JuvMisdemeanorJumpRule
+    a sh:NodeShape ;
+    sh:targetClass schema:Person ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Decrease in juv_misd_count exceeding 3 in a single counterfactual step is unrealistic." ;
+        sh:select '''
+PREFIX ex: <http://example.org/compas/>
+SELECT $this WHERE {
+    $this ex:isCounterfactual true .
+    $this ex:originalJuvMisdemeanorCount ?old .
+    $this ex:juvMisdemeanorCount ?new .
+    FILTER((?old - ?new) > 3)
+}
+''' ;
+    ] .
+
+ex:JuvOtherDirectionalRule
+    a sh:NodeShape ;
+    sh:targetClass schema:Person ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "juv_other_count cannot increase." ;
+        sh:select '''
+PREFIX ex: <http://example.org/compas/>
+SELECT $this WHERE {
+    $this ex:isCounterfactual true .
+    $this ex:originalJuvOtherCount ?old .
+    $this ex:juvOtherCount ?new .
+    FILTER(?new > ?old)
+}
+''' ;
+    ] .
+
+ex:JuvOtherJumpRule
+    a sh:NodeShape ;
+    sh:targetClass schema:Person ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Decrease in juv_other_count exceeding 3 in a single counterfactual step is unrealistic." ;
+        sh:select '''
+PREFIX ex: <http://example.org/compas/>
+SELECT $this WHERE {
+    $this ex:isCounterfactual true .
+    $this ex:originalJuvOtherCount ?old .
+    $this ex:juvOtherCount ?new .
+    FILTER((?old - ?new) > 3)
+}
+''' ;
+    ] .
+
+# ================================================================
+#  SPARSITY – only for counterfactuals
+#  UPDATED: max 8 changes to match 8 mutable features
+# ================================================================
+ex:SparsityRule
+    a sh:NodeShape ;
+    sh:targetClass schema:Person ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Too many features changed (max 8)." ;
+        sh:select '''
+PREFIX ex: <http://example.org/compas/>
+SELECT $this WHERE {
+    $this ex:isCounterfactual true .
+    $this ex:numberOfChangedFeatures ?n .
+    FILTER(?n > 8)
+}
+''' ;
+    ] .

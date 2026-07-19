@@ -1,0 +1,639 @@
+@prefix sh:     <http://www.w3.org/ns/shacl#> .
+@prefix schema: <http://schema.org/> .
+@prefix foaf:   <http://xmlns.com/foaf/0.1/> .
+@prefix ex:     <http://example.org/credit/> .
+@prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
+
+# ================================================================
+#  BASIC DATA VALIDATION – HARD CONSTRAINTS
+# ================================================================
+ex:LoanAmountShape
+    a sh:NodeShape ;
+    sh:targetClass ex:CreditApplication ;
+    sh:property [
+        sh:path schema:value ;
+        sh:minInclusive 250 ;
+        sh:maxInclusive 20000 ;
+        sh:datatype xsd:integer ;
+        sh:message "Credit amount must be 250-20,000 DM."
+    ] .
+
+ex:DurationShape
+    a sh:NodeShape ;
+    sh:targetClass ex:CreditApplication ;
+    sh:property [
+        sh:path schema:numberOfLoanPayments ;
+        sh:minInclusive 1 ;
+        sh:maxInclusive 72 ;
+        sh:datatype xsd:integer ;
+        sh:message "Duration must be 1-72 months."
+    ] .
+
+ex:InstallmentRateShape
+    a sh:NodeShape ;
+    sh:targetClass ex:CreditApplication ;
+    sh:property [
+        sh:path schema:annualPercentageRate ;
+        sh:minInclusive 1 ;
+        sh:maxInclusive 4 ;
+        sh:datatype xsd:integer ;
+        sh:message "Installment rate must be 1-4%."
+    ] .
+
+ex:PersonShape
+    a sh:NodeShape ;
+    sh:targetClass foaf:Person ;
+    sh:property [
+        sh:path foaf:age ;
+        sh:minInclusive 18 ;
+        sh:maxInclusive 100 ;
+        sh:datatype xsd:integer ;
+        sh:message "Age must be 18-100."
+    ] .
+
+ex:ExistingCreditsShape
+    a sh:NodeShape ;
+    sh:targetClass ex:CreditApplication ;
+    sh:property [
+        sh:path schema:numberOfCredits ;
+        sh:minInclusive 1 ;
+        sh:maxInclusive 4 ;
+        sh:datatype xsd:integer ;
+        sh:message "Existing credits must be 1-4."
+    ] .
+
+ex:NumDependentsShape
+    a sh:NodeShape ;
+    sh:targetClass foaf:Person ;
+    sh:property [
+        sh:path schema:numberOfItems ;
+        sh:minInclusive 1 ;
+        sh:maxInclusive 2 ;
+        sh:datatype xsd:integer ;
+        sh:message "Number of dependents must be 1-2."
+    ] .
+
+# ================================================================
+#  RISK & SEMANTIC RULES – WARNINGS (scoring only)
+# ================================================================
+ex:OverdrawnHighLoanRule
+    a sh:NodeShape ;
+    sh:targetClass ex:CreditApplication ;
+    sh:warning [
+        a sh:SPARQLConstraint ;
+        sh:message "Overdrawn checking account (<0 DM) with loan > 15,000 DM is very high risk." ;
+        sh:select '''
+PREFIX sh: <http://www.w3.org/ns/shacl#>
+PREFIX schema: <http://schema.org/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX ex: <http://example.org/credit/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+            SELECT $this WHERE {
+                $this ex:checkingStatus ?cs .
+                FILTER(CONTAINS(LCASE(STR(?cs)), "<0"))
+                $this schema:value ?amt .
+                FILTER(?amt > 15000)
+            }
+        ''' ;
+    ] .
+
+ex:NoCheckingHighLoanRule
+    a sh:NodeShape ;
+    sh:targetClass ex:CreditApplication ;
+    sh:warning [
+        a sh:SPARQLConstraint ;
+        sh:message "No checking account with loan > 18,000 DM." ;
+        sh:select '''
+PREFIX sh: <http://www.w3.org/ns/shacl#>
+PREFIX schema: <http://schema.org/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX ex: <http://example.org/credit/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+            SELECT $this WHERE {
+                $this ex:checkingStatus ?cs .
+                FILTER(CONTAINS(LCASE(STR(?cs)), "no checking"))
+                $this schema:value ?amt .
+                FILTER(?amt > 18000)
+            }
+        ''' ;
+    ] .
+
+ex:NoSavingsHighLoanRule
+    a sh:NodeShape ;
+    sh:targetClass ex:CreditApplication ;
+    sh:warning [
+        a sh:SPARQLConstraint ;
+        sh:message "No/unknown savings with loan > 15,000 DM." ;
+        sh:select '''
+PREFIX sh: <http://www.w3.org/ns/shacl#>
+PREFIX schema: <http://schema.org/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX ex: <http://example.org/credit/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+            SELECT $this WHERE {
+                $this ex:savingsStatus ?s .
+                FILTER(CONTAINS(LCASE(STR(?s)), "no known") || CONTAINS(LCASE(STR(?s)), "unknown"))
+                $this schema:value ?amt .
+                FILTER(?amt > 15000)
+            }
+        ''' ;
+    ] .
+
+ex:ExistingCreditsHighLoanRule
+    a sh:NodeShape ;
+    sh:targetClass ex:CreditApplication ;
+    sh:warning [
+        a sh:SPARQLConstraint ;
+        sh:message "2+ existing credits cannot request > 15,000 DM." ;
+        sh:select '''
+PREFIX sh: <http://www.w3.org/ns/shacl#>
+PREFIX schema: <http://schema.org/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX ex: <http://example.org/credit/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+            SELECT $this WHERE {
+                $this schema:numberOfCredits ?count .
+                FILTER(?count >= 2)
+                $this schema:value ?amt .
+                FILTER(?amt > 15000)
+            }
+        ''' ;
+    ] .
+
+ex:BadCreditLongDurationRule
+    a sh:NodeShape ;
+    sh:targetClass ex:CreditApplication ;
+    sh:warning [
+        a sh:SPARQLConstraint ;
+        sh:message "Bad/critical credit history requires duration <= 60 months." ;
+        sh:select '''
+PREFIX sh: <http://www.w3.org/ns/shacl#>
+PREFIX schema: <http://schema.org/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX ex: <http://example.org/credit/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+            SELECT $this WHERE {
+                $this ex:creditHistory ?h .
+                FILTER(CONTAINS(LCASE(STR(?h)), "bad") || CONTAINS(LCASE(STR(?h)), "critical"))
+                $this schema:numberOfLoanPayments ?dur .
+                FILTER(?dur > 60)
+            }
+        ''' ;
+    ] .
+
+ex:UnemployedSalaryCheckingRule
+    a sh:NodeShape ;
+    sh:targetClass ex:CreditApplication ;
+    sh:warning [
+        a sh:SPARQLConstraint ;
+        sh:message "Unemployed applicant cannot have salary-assignment checking status (>=200 DM)." ;
+        sh:select '''
+PREFIX sh: <http://www.w3.org/ns/shacl#>
+PREFIX schema: <http://schema.org/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX ex: <http://example.org/credit/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+            SELECT $this WHERE {
+                $this schema:borrower ?p .
+                ?p ex:employmentSince ?emp .
+                FILTER(CONTAINS(LCASE(STR(?emp)), "unemployed") || CONTAINS(LCASE(STR(?emp)), "unemp"))
+                $this ex:checkingStatus ?cs .
+                FILTER(CONTAINS(LCASE(STR(?cs)), ">=200"))
+            }
+        ''' ;
+    ] .
+
+ex:YoungLongEmploymentRule
+    a sh:NodeShape ;
+    sh:targetClass ex:CreditApplication ;
+    sh:warning [
+        a sh:SPARQLConstraint ;
+        sh:message "Applicant under 25 cannot have 7+ years of employment." ;
+        sh:select '''
+PREFIX sh: <http://www.w3.org/ns/shacl#>
+PREFIX schema: <http://schema.org/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX ex: <http://example.org/credit/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+            SELECT $this WHERE {
+                $this schema:borrower ?p .
+                ?p foaf:age ?age .
+                FILTER(?age < 25)
+                ?p ex:employmentSince ?emp .
+                FILTER(CONTAINS(LCASE(STR(?emp)), ">=7") || CONTAINS(LCASE(STR(?emp)), "7+"))
+            }
+        ''' ;
+    ] .
+
+ex:YoungRichHistoryRule
+    a sh:NodeShape ;
+    sh:targetClass ex:CreditApplication ;
+    sh:warning [
+        a sh:SPARQLConstraint ;
+        sh:message "Applicant under 23 cannot have multi-loan all paid credit history." ;
+        sh:select '''
+PREFIX sh: <http://www.w3.org/ns/shacl#>
+PREFIX schema: <http://schema.org/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX ex: <http://example.org/credit/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+            SELECT $this WHERE {
+                $this schema:borrower ?p .
+                ?p foaf:age ?age .
+                FILTER(?age < 23)
+                $this ex:creditHistory ?h .
+                FILTER(CONTAINS(LCASE(STR(?h)), "all paid"))
+            }
+        ''' ;
+    ] .
+
+ex:BusinessLoanMinRule
+    a sh:NodeShape ;
+    sh:targetClass ex:CreditApplication ;
+    sh:warning [
+        a sh:SPARQLConstraint ;
+        sh:message "Business loan under 500 DM is implausible." ;
+        sh:select '''
+PREFIX sh: <http://www.w3.org/ns/shacl#>
+PREFIX schema: <http://schema.org/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX ex: <http://example.org/credit/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+            SELECT $this WHERE {
+                $this ex:loanPurpose ?p .
+                FILTER(CONTAINS(LCASE(STR(?p)), "business"))
+                $this schema:value ?amt .
+                FILTER(?amt < 500)
+            }
+        ''' ;
+    ] .
+
+ex:PurposeDurationBusinessRule
+    a sh:NodeShape ;
+    sh:targetClass ex:CreditApplication ;
+    sh:warning [
+        a sh:SPARQLConstraint ;
+        sh:message "Business loan should have duration >= 12 months." ;
+        sh:select '''
+PREFIX sh: <http://www.w3.org/ns/shacl#>
+PREFIX schema: <http://schema.org/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX ex: <http://example.org/credit/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+            SELECT $this WHERE {
+                $this ex:loanPurpose ?p .
+                FILTER(CONTAINS(LCASE(STR(?p)), "business"))
+                $this schema:numberOfLoanPayments ?dur .
+                FILTER(?dur < 12)
+            }
+        ''' ;
+    ] .
+
+ex:YoungLongDurationRule
+    a sh:NodeShape ;
+    sh:targetClass ex:CreditApplication ;
+    sh:warning [
+        a sh:SPARQLConstraint ;
+        sh:message "Applicant under 25 with duration > 36 months is high risk." ;
+        sh:select '''
+PREFIX sh: <http://www.w3.org/ns/shacl#>
+PREFIX schema: <http://schema.org/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX ex: <http://example.org/credit/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+            SELECT $this WHERE {
+                $this schema:borrower ?p .
+                ?p foaf:age ?age .
+                FILTER(?age < 25)
+                $this schema:numberOfLoanPayments ?dur .
+                FILTER(?dur > 36)
+            }
+        ''' ;
+    ] .
+
+# ================================================================
+#  IMMUTABILITY RULES – HARD CONSTRAINTS
+# ================================================================
+ex:PersonalStatusImmutabilityRule
+    a sh:NodeShape ;
+    sh:targetClass ex:CounterfactualApplication ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Personal status is immutable." ;
+        sh:select '''
+PREFIX sh: <http://www.w3.org/ns/shacl#>
+PREFIX schema: <http://schema.org/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX ex: <http://example.org/credit/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+            SELECT $this WHERE {
+                $this schema:borrower ?p .
+                ?p ex:originalPersonalStatus ?old .
+                ?p ex:personalStatus ?new .
+                FILTER(STR(?old) != STR(?new))
+            }
+        ''' ;
+    ] .
+
+ex:ForeignWorkerImmutabilityRule
+    a sh:NodeShape ;
+    sh:targetClass ex:CounterfactualApplication ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Foreign worker status is immutable." ;
+        sh:select '''
+PREFIX sh: <http://www.w3.org/ns/shacl#>
+PREFIX schema: <http://schema.org/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX ex: <http://example.org/credit/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+            SELECT $this WHERE {
+                $this schema:borrower ?p .
+                ?p ex:originalForeignWorker ?old .
+                ?p ex:isForeignWorker ?new .
+                FILTER(?old != ?new)
+            }
+        ''' ;
+    ] .
+
+ex:NumDependentsImmutabilityRule
+    a sh:NodeShape ;
+    sh:targetClass ex:CounterfactualApplication ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Number of dependents is immutable in 3-year window." ;
+        sh:select '''
+PREFIX sh: <http://www.w3.org/ns/shacl#>
+PREFIX schema: <http://schema.org/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX ex: <http://example.org/credit/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+            SELECT $this WHERE {
+                $this schema:borrower ?p .
+                ?p ex:originalNumDependents ?old .
+                ?p schema:numberOfItems ?new .
+                FILTER(?old != ?new)
+            }
+        ''' ;
+    ] .
+
+# ================================================================
+#  COUNTERFACTUAL FEASIBILITY – HARD CONSTRAINTS
+# ================================================================
+ex:EmploymentDirectionalRule
+    a sh:NodeShape ;
+    sh:targetClass ex:CounterfactualApplication ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Employment tenure cannot decrease." ;
+        sh:select '''
+PREFIX sh: <http://www.w3.org/ns/shacl#>
+PREFIX schema: <http://schema.org/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX ex: <http://example.org/credit/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+            SELECT $this WHERE {
+                $this schema:borrower ?p .
+                ?p ex:originalEmploymentOrdinal ?old .
+                ?p ex:newEmploymentOrdinal ?new .
+                FILTER(?new < ?old)
+            }
+        ''' ;
+    ] .
+
+ex:EmploymentJumpRule
+    a sh:NodeShape ;
+    sh:targetClass ex:CounterfactualApplication ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Employment tenure jump > 3 steps is unreachable." ;
+        sh:select '''
+PREFIX sh: <http://www.w3.org/ns/shacl#>
+PREFIX schema: <http://schema.org/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX ex: <http://example.org/credit/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+            SELECT $this WHERE {
+                $this schema:borrower ?p .
+                ?p ex:originalEmploymentOrdinal ?old .
+                ?p ex:newEmploymentOrdinal ?new .
+                FILTER((?new - ?old) > 3)
+            }
+        ''' ;
+    ] .
+
+ex:CheckingDirectionalRule
+    a sh:NodeShape ;
+    sh:targetClass ex:CounterfactualApplication ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Checking account status cannot decrease by more than 3 levels." ;
+        sh:select '''
+PREFIX sh: <http://www.w3.org/ns/shacl#>
+PREFIX schema: <http://schema.org/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX ex: <http://example.org/credit/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+            SELECT $this WHERE {
+                $this ex:originalCheckingOrdinal ?old .
+                $this ex:newCheckingOrdinal ?new .
+                FILTER(?new < (?old - 3))
+            }
+        ''' ;
+    ] .
+
+ex:CheckingJumpRule
+    a sh:NodeShape ;
+    sh:targetClass ex:CounterfactualApplication ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Checking status jump from <0 to >=200 DM is too large." ;
+        sh:select '''
+PREFIX sh: <http://www.w3.org/ns/shacl#>
+PREFIX schema: <http://schema.org/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX ex: <http://example.org/credit/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+            SELECT $this WHERE {
+                $this ex:originalCheckingOrdinal ?old .
+                $this ex:newCheckingOrdinal ?new .
+                FILTER(?old <= 1 && ?new >= 3)
+            }
+        ''' ;
+    ] .
+
+ex:SavingsDirectionalRule
+    a sh:NodeShape ;
+    sh:targetClass ex:CounterfactualApplication ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Savings cannot decrease by more than 1 level." ;
+        sh:select '''
+PREFIX sh: <http://www.w3.org/ns/shacl#>
+PREFIX schema: <http://schema.org/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX ex: <http://example.org/credit/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+            SELECT $this WHERE {
+                $this ex:originalSavingsOrdinal ?old .
+                $this ex:newSavingsOrdinal ?new .
+                FILTER(?new < (?old - 1))
+            }
+        ''' ;
+    ] .
+
+ex:SavingsJumpRule
+    a sh:NodeShape ;
+    sh:targetClass ex:CounterfactualApplication ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Savings jump from <100 to >=1000 DM is unrealistic." ;
+        sh:select '''
+PREFIX sh: <http://www.w3.org/ns/shacl#>
+PREFIX schema: <http://schema.org/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX ex: <http://example.org/credit/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+            SELECT $this WHERE {
+                $this ex:originalSavingsOrdinal ?old .
+                $this ex:newSavingsOrdinal ?new .
+                FILTER(?old <= 1 && ?new >= 4)
+            }
+        ''' ;
+    ] .
+
+ex:SparsityRule
+    a sh:NodeShape ;
+    sh:targetClass ex:CounterfactualApplication ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Counterfactual changes too many features (max 15)." ;
+        sh:select '''
+PREFIX sh: <http://www.w3.org/ns/shacl#>
+PREFIX schema: <http://schema.org/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX ex: <http://example.org/credit/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+            SELECT $this WHERE {
+                $this ex:numberOfChangedFeatures ?n .
+                FILTER(?n > 15)
+            }
+        ''' ;
+    ] .
+
+ex:LoanReductionRule
+    a sh:NodeShape ;
+    sh:targetClass ex:CounterfactualApplication ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Loan amount reduced by > 70%." ;
+        sh:select '''
+PREFIX sh: <http://www.w3.org/ns/shacl#>
+PREFIX schema: <http://schema.org/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX ex: <http://example.org/credit/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+            SELECT $this WHERE {
+                $this ex:originalAmount ?old .
+                $this schema:value ?new .
+                FILTER(?new < (?old * 0.3))
+            }
+        ''' ;
+    ] .
+
+ex:DurationReductionRule
+    a sh:NodeShape ;
+    sh:targetClass ex:CounterfactualApplication ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Duration reduction exceeds 36 months." ;
+        sh:select '''
+PREFIX sh: <http://www.w3.org/ns/shacl#>
+PREFIX schema: <http://schema.org/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX ex: <http://example.org/credit/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+            SELECT $this WHERE {
+                $this ex:originalDuration ?old .
+                $this schema:numberOfLoanPayments ?new .
+                FILTER((?old - ?new) > 36)
+            }
+        ''' ;
+    ] .
+
+# ================================================================
+#  TEMPORAL COHESION – AGE DIRECTION RULES (HARD CONSTRAINTS)
+# ================================================================
+
+ex:EmploymentAgeCohesionRule
+    a sh:NodeShape ;
+    sh:targetClass ex:CounterfactualApplication ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Employment tenure increase requires age increase." ;
+        sh:select '''
+PREFIX sh: <http://www.w3.org/ns/shacl#>
+PREFIX schema: <http://schema.org/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX ex: <http://example.org/credit/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+SELECT $this WHERE {
+    $this schema:borrower ?p .
+    ?p ex:originalEmploymentOrdinal ?oldEmp .
+    ?p ex:newEmploymentOrdinal ?newEmp .
+    FILTER(?newEmp > ?oldEmp)
+    ?p foaf:age ?newAge .
+    ?p ex:originalAge ?oldAge .
+    FILTER(?newAge <= ?oldAge)
+}
+''' ;
+    ] .
+
+ex:SavingsAgeCohesionRule
+    a sh:NodeShape ;
+    sh:targetClass ex:CounterfactualApplication ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Savings increase requires age increase." ;
+        sh:select '''
+PREFIX sh: <http://www.w3.org/ns/shacl#>
+PREFIX schema: <http://schema.org/>
+PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+PREFIX ex: <http://example.org/credit/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+SELECT $this WHERE {
+    $this ex:originalSavingsOrdinal ?oldSav .
+    $this ex:newSavingsOrdinal ?newSav .
+    FILTER(?newSav > ?oldSav)
+    $this schema:borrower ?p .
+    ?p foaf:age ?newAge .
+    ?p ex:originalAge ?oldAge .
+    FILTER(?newAge <= ?oldAge)
+}
+''' ;
+    ] .
