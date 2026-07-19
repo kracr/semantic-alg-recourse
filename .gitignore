@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# PyCharm
+.idea/
+*.iml
+.vscode/
+
+# Output files (CSVs, RDFs, plots, logs)
+*.csv
+*.ttl
+*.png
+*.pdf
+*.html
+*.nq
+*.trig
+*.log
+
+# Data files
+*.zip
+*.tar.gz
+
+# Misc
+.DS_Store
+Thumbs.db
