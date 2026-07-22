@@ -2,38 +2,26 @@
 __pycache__/
 *.pyc
 *.pyo
-*.pyd
-.Python
-*.so
-*.egg
-*.egg-info/
-dist/
-build/
 
-# Virtual environment
+# Virtual env
 .venv/
-venv/
-env/
 
-# PyCharm
+# IDE
 .idea/
-*.iml
 .vscode/
 
-# Output files (CSVs, RDFs, plots, logs)
-*.csv
-*.ttl
-*.png
-*.pdf
-*.html
-*.nq
-*.trig
+# Models and results
+models/
+results/
+
+# Old scripts (ignore all the junk)
+26*.py
+27*.py
+check*.py
+extra*.py
+analysis_*.txt
+compas_Check_shacl.py
+actionable_method1_only.py
+Checking_the_shacl_rules.py
+debug_*.csv
 *.log
-
-# Data files
-*.zip
-*.tar.gz
-
-# Misc
-.DS_Store
-Thumbs.db
