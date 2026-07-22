@@ -1,0 +1,61 @@
+dataset_name: "compas"
+source_type: "url"
+url: "https://raw.githubusercontent.com/propublica/compas-analysis/master/compas-scores-two-years.csv"
+target: "recidivism"
+target_undesired: 1
+target_desired: 0
+
+features:
+  continuous:
+    - "age"
+    - "priors_count"
+    - "juv_fel_count"
+    - "juv_misd_count"
+    - "juv_other_count"
+    - "days_b_screening_arrest"
+    - "length_of_stay"
+  categorical:
+    - "sex"
+    - "race"
+    - "c_charge_degree"
+
+immutable_attributes:
+  - "sex"
+  - "race"
+
+cost_weights:
+  age: 1.0
+  priors_count: 5.0
+  c_charge_degree: 3.0
+  days_b_screening_arrest: 2.0
+  length_of_stay: 2.0
+  juv_fel_count: 4.0
+  juv_misd_count: 4.0
+  juv_other_count: 4.0
+  default: 1.0
+
+ordinal_mappings: {}
+
+artifact_paths:
+  ontology: "ontology/compas_ontology_lean.ttl"
+  shacl: "shacl/compas_shacl_lean.ttl"
+  rml: "mapping/compas_mapping_lean.yml"
+
+action_rules:
+  stable_attributes: ["sex", "race"]
+  flexible_attributes: []
+  min_support: 0.02
+  min_confidence: 0.6
+  min_stable: 1
+  min_flexible: 1
+
+# DiCE specific permitted ranges (optional)
+dice_permitted_range:
+  age: [18, 96]
+  priors_count: [0, 38]
+  days_b_screening_arrest: [-30, 30]
+  length_of_stay: [0, 365]
+
+preprocessing:
+  method: "standard"     # ColumnTransformer with StandardScaler + OneHotEncoder
+  stratify: true
