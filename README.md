@@ -1,4 +1,6 @@
-# Semantic Algorithmic Recourse – Unified Pipeline
+<<<<<<< HEAD
+# semantic-alg-recourse
+Semantically validate the generated counterfactual explanations for algorithmic recourse.
 
 This repository provides a unified pipeline for generating counterfactual explanations with semantic validation. It supports multiple datasets and counterfactual generation methods in a single configurable codebase.
 
