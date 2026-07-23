@@ -195,11 +195,12 @@ cython_debug/
 .abstra/
 
 # Visual Studio Code
-#   Visual Studio Code specific template is maintained in a separate VisualStudioCode.gitignore 
+#   Visual Studio Code specific template is maintained in a separate VisualStudioCode.gitignore
 #   that can be found at https://github.com/github/gitignore/blob/main/Global/VisualStudioCode.gitignore
-#   and can be added to the global gitignore or merged into this file. However, if you prefer, 
+#   and can be added to the global gitignore or merged into this file. However, if you prefer,
 #   you could uncomment the following to ignore the entire vscode folder
 # .vscode/
+
 # Temporary file for partial code execution
 tempCodeRunnerFile.py
 
@@ -216,3 +217,60 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ============================================================
+# Project-specific ignores (added by me)
+# ============================================================
+
+# Models and saved state
+models/
+*.joblib
+*.pkl
+*.pickle
+
+# Results and outputs
+results/
+*.csv
+*.png
+*.ttl
+*.pdf
+*.svg
+*.html
+
+# Debug and temporary files
+debug_*.csv
+*.log
+temp_*
+tmp_*
+*.tmp
+
+# Old development/test scripts
+check*.py
+extra*.py
+*_run*.py
+test*.py
+scratch*.py
+*_tmp*.py
+*_test*.py
+
+# Analysis reports
+analysis_*.txt
+report_*.txt
+summary_*.txt
+
+# Dataset files (if not committed)
+dataset/*/*.csv
+dataset/*.csv
+
+# Morph-KGC and RDF outputs
+*.rdf
+*.ttl
+
+# Jupyter notebooks
+*.ipynb
+
+# Mac OS
+.DS_Store
+
+# Windows
+Thumbs.db

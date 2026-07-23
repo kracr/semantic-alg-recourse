@@ -1,0 +1,241 @@
+@prefix owl:    <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:   <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
+@prefix schema: <http://schema.org/> .
+@prefix foaf:   <http://xmlns.com/foaf/0.1/> .
+@prefix ex:     <http://example.org/compas/> .
+
+ex:
+    a owl:Ontology ;
+    rdfs:label "COMPAS Counterfactual Ontology (Full Features)" ;
+    rdfs:comment "Reuses schema:Person and adds all domain-specific properties from the COMPAS dataset." ;
+    owl:imports schema: , foaf: .
+
+# ================================================================
+#  Classes – reuse schema:Person directly
+# ================================================================
+
+# ================================================================
+#  Object Properties
+# ================================================================
+ex:originalPerson
+    a owl:ObjectProperty ;
+    rdfs:domain schema:Person ;
+    rdfs:range schema:Person ;
+    rdfs:label "original person" .
+
+ex:hasExplanation
+    a owl:ObjectProperty ;
+    rdfs:domain schema:Person ;
+    rdfs:range ex:CounterfactualExplanation ;
+    rdfs:label "has explanation" .
+
+ex:hasCounterfactual
+    a owl:ObjectProperty ;
+    rdfs:domain ex:CounterfactualExplanation ;
+    rdfs:range schema:Person ;
+    rdfs:label "has counterfactual" .
+
+# ================================================================
+#  Data Properties – reuse schema:age, schema:gender
+# ================================================================
+ex:race
+    a owl:DatatypeProperty ;
+    rdfs:domain schema:Person ;
+    rdfs:range xsd:string ;
+    rdfs:label "race" .
+
+ex:priorsCount
+    a owl:DatatypeProperty ;
+    rdfs:domain schema:Person ;
+    rdfs:range xsd:integer ;
+    rdfs:label "number of prior offenses" .
+
+ex:chargeDegree
+    a owl:DatatypeProperty ;
+    rdfs:domain schema:Person ;
+    rdfs:range xsd:string ;
+    rdfs:label "charge degree (F/M)" .
+
+ex:juvFelonyCount
+    a owl:DatatypeProperty ;
+    rdfs:domain schema:Person ;
+    rdfs:range xsd:integer ;
+    rdfs:label "juvenile felony count" .
+
+ex:juvMisdemeanorCount
+    a owl:DatatypeProperty ;
+    rdfs:domain schema:Person ;
+    rdfs:range xsd:integer ;
+    rdfs:label "juvenile misdemeanor count" .
+
+ex:juvOtherCount
+    a owl:DatatypeProperty ;
+    rdfs:domain schema:Person ;
+    rdfs:range xsd:integer ;
+    rdfs:label "juvenile other count" .
+
+ex:daysB_screeningArrest
+    a owl:DatatypeProperty ;
+    rdfs:domain schema:Person ;
+    rdfs:range xsd:integer ;
+    rdfs:label "days between screening and arrest" .
+
+ex:lengthOfStay
+    a owl:DatatypeProperty ;
+    rdfs:domain schema:Person ;
+    rdfs:range xsd:integer ;
+    rdfs:label "length of stay in jail (days)" .
+
+ex:ageCat
+    a owl:DatatypeProperty ;
+    rdfs:domain schema:Person ;
+    rdfs:range xsd:string ;
+    rdfs:label "age category" .
+
+ex:decileScore
+    a owl:DatatypeProperty ;
+    rdfs:domain schema:Person ;
+    rdfs:range xsd:integer ;
+    rdfs:label "COMPAS decile risk score (1-10)" .
+
+ex:scoreText
+    a owl:DatatypeProperty ;
+    rdfs:domain schema:Person ;
+    rdfs:range xsd:string ;
+    rdfs:label "COMPAS risk category" .
+
+ex:recidivism
+    a owl:DatatypeProperty ;
+    rdfs:domain schema:Person ;
+    rdfs:range xsd:boolean ;
+    rdfs:label "recidivism within two years" .
+
+ex:predictedRecidivism
+    a owl:DatatypeProperty ;
+    rdfs:domain schema:Person ;
+    rdfs:range xsd:boolean ;
+    rdfs:label "predicted recidivism" .
+
+ex:isCounterfactual
+    a owl:DatatypeProperty ;
+    rdfs:domain schema:Person ;
+    rdfs:range xsd:boolean ;
+    rdfs:label "is counterfactual" .
+
+# Original-value properties
+ex:originalAge
+    a owl:DatatypeProperty ;
+    rdfs:domain schema:Person ;
+    rdfs:range xsd:integer ;
+    rdfs:label "original age" .
+
+ex:originalPriorsCount
+    a owl:DatatypeProperty ;
+    rdfs:domain schema:Person ;
+    rdfs:range xsd:integer ;
+    rdfs:label "original priors count" .
+
+ex:originalJuvFelonyCount
+    a owl:DatatypeProperty ;
+    rdfs:domain schema:Person ;
+    rdfs:range xsd:integer ;
+    rdfs:label "original juvenile felony count" .
+
+ex:originalJuvMisdemeanorCount
+    a owl:DatatypeProperty ;
+    rdfs:domain schema:Person ;
+    rdfs:range xsd:integer ;
+    rdfs:label "original juvenile misdemeanor count" .
+
+ex:originalJuvOtherCount
+    a owl:DatatypeProperty ;
+    rdfs:domain schema:Person ;
+    rdfs:range xsd:integer ;
+    rdfs:label "original juvenile other count" .
+
+ex:originalDaysB_screeningArrest
+    a owl:DatatypeProperty ;
+    rdfs:domain schema:Person ;
+    rdfs:range xsd:integer ;
+    rdfs:label "original days between screening and arrest" .
+
+ex:originalLengthOfStay
+    a owl:DatatypeProperty ;
+    rdfs:domain schema:Person ;
+    rdfs:range xsd:integer ;
+    rdfs:label "original length of stay" .
+
+ex:originalGender
+    a owl:DatatypeProperty ;
+    rdfs:domain schema:Person ;
+    rdfs:range xsd:string ;
+    rdfs:label "original gender" .
+
+ex:originalRace
+    a owl:DatatypeProperty ;
+    rdfs:domain schema:Person ;
+    rdfs:range xsd:string ;
+    rdfs:label "original race" .
+
+ex:originalPriorsOrdinal
+    a owl:DatatypeProperty ;
+    rdfs:domain schema:Person ;
+    rdfs:range xsd:integer ;
+    rdfs:label "original priors ordinal" .
+
+ex:newPriorsOrdinal
+    a owl:DatatypeProperty ;
+    rdfs:domain schema:Person ;
+    rdfs:range xsd:integer ;
+    rdfs:label "counterfactual priors ordinal" .
+
+ex:numberOfChangedFeatures
+    a owl:DatatypeProperty ;
+    rdfs:domain schema:Person ;
+    rdfs:range xsd:integer ;
+    rdfs:label "number of changed features" .
+
+# ================================================================
+#  Explanation class
+# ================================================================
+ex:CounterfactualExplanation
+    a owl:Class ;
+    rdfs:label "Counterfactual Explanation" .
+
+ex:proximityScore
+    a owl:DatatypeProperty ;
+    rdfs:domain ex:CounterfactualExplanation ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "proximity score" .
+
+ex:sparsityScore
+    a owl:DatatypeProperty ;
+    rdfs:domain ex:CounterfactualExplanation ;
+    rdfs:range xsd:integer ;
+    rdfs:label "sparsity score" .
+
+ex:costScore
+    a owl:DatatypeProperty ;
+    rdfs:domain ex:CounterfactualExplanation ;
+    rdfs:range xsd:decimal ;
+    rdfs:label "cost score" .
+
+ex:isValid
+    a owl:DatatypeProperty ;
+    rdfs:domain ex:CounterfactualExplanation ;
+    rdfs:range xsd:boolean ;
+    rdfs:label "valid" .
+
+ex:violationMessages
+    a owl:DatatypeProperty ;
+    rdfs:domain ex:CounterfactualExplanation ;
+    rdfs:range xsd:string ;
+    rdfs:label "violation messages" .
+
+ex:generatedByMethod
+    a owl:DatatypeProperty ;
+    rdfs:domain ex:CounterfactualExplanation ;
+    rdfs:range xsd:string ;
+    rdfs:label "generated by method" .
